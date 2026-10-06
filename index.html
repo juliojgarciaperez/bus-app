@@ -172,7 +172,7 @@ if (group !== 'A' && group !== 'B') {
   const accent = group === 'A' ? '#1565c0' : '#2e7d32';
   document.documentElement.style.setProperty('--accent', accent);
 
-  const filtered = people.filter(p => p.group === group);
+  const filtered = people.filter(p => p.group === group).sort((a, b) => a.name.localeCompare(b.name, 'es'));
   const lsKey = id => `busapp_v1_${group}_${id}`;
   const checked = new Set(filtered.filter(p => localStorage.getItem(lsKey(p.id)) === '1').map(p => p.id));
   let query = '';
