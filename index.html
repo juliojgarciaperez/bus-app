@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>Bus · Control de acceso</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f0f2f5; -webkit-font-smoothing: antialiased; }
+
+    /* Selector de grupo */
+    .selector { min-height: 100dvh; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; padding: 32px 24px; }
+    .selector h1 { font-size: 1.4rem; color: #222; }
+    .selector p { color: #777; font-size: 0.95rem; }
+    .sel-btn { display: block; width: 100%; max-width: 320px; padding: 22px; font-size: 1.5rem; font-weight: 700; border: none; border-radius: 16px; cursor: pointer; letter-spacing: 0.04em; }
+    .sel-a { background: #1565c0; color: white; }
+    .sel-b { background: #2e7d32; color: white; }
+
+    /* Header */
+    .header { position: sticky; top: 0; z-index: 20; padding: 12px 16px; display: flex; align-items: center; gap: 12px; }
+    .hdr-a { background: #1565c0; color: white; }
+    .hdr-b { background: #2e7d32; color: white; }
+    .hdr-info { flex: 1; }
+    .hdr-label { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.1em; opacity: 0.8; margin-bottom: 2px; }
+    .hdr-count { font-size: 1.9rem; font-weight: 800; line-height: 1; }
+    .hdr-sub { font-size: 0.78rem; opacity: 0.75; margin-top: 2px; }
+    .reset-btn { flex-shrink: 0; background: rgba(255,255,255,0.18); border: 1px solid rgba(255,255,255,0.28); color: white; padding: 8px 12px; border-radius: 8px; font-size: 0.78rem; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+    .reset-btn:active { background: rgba(255,255,255,0.35); }
+
+    /* Buscador */
+    .search-wrap { position: sticky; z-index: 19; background: white; padding: 8px 12px; border-bottom: 1px solid #e0e0e0; }
+    .search-inner { position: relative; }
+    .search-icon { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); font-size: 0.95rem; pointer-events: none; }
+    .search-input { width: 100%; padding: 10px 12px 10px 36px; border: 1.5px solid #ddd; border-radius: 10px; font-size: 1rem; background: #fafafa; outline: none; -webkit-appearance: none; appearance: none; }
+    .search-input:focus { background: white; border-color: var(--accent, #1565c0); }
+
+    /* Lista */
+    .person-row { display: flex; align-items: center; min-height: 54px; padding: 0 16px; background: white; border-bottom: 1px solid #f0f0f0; cursor: pointer; -webkit-tap-highlight-color: transparent; user-select: none; }
+    .person-row:active { background: #f5f5f5; }
+    .person-row.checked { background: #e8f5e9; }
+    .person-cb { width: 22px; height: 22px; flex-shrink: 0; margin-right: 14px; pointer-events: none; accent-color: var(--accent, #1565c0); }
+    .person-name { font-size: 1rem; flex: 1; padding: 16px 0; line-height: 1.3; pointer-events: none; }
+    .person-row.checked .person-name { color: #2e7d32; text-decoration: line-through; text-decoration-color: #81c784; }
+
+    .no-results { text-align: center; padding: 48px 24px; color: #999; font-size: 0.95rem; }
+  </style>
+</head>
+<body>
+<script>
+const CSV = `1\tCati Conde,A
+2\tJuan Manuel Ruiz,A
+3\tDavid Ruiz,A
+4\tJavier Ruiz,A
+5\tCristina Caballero,A
+6\tMariola Conde,A
+7\tLuis Álvarez,A
+8\tCecilia Álvarez,A
+9\tLuis Álvarez,A
+10\tAntonio Conde,A
+11\tBella Gómez,A
+12\tClaudia Conde,A
+13\tAitana Conde,A
+14\tManuel Conde Pecino,A
+15\tMaria Dolores Rebollo,A
+16\tEva Conde,A
+17\tSanti Blanco,A
+18\tNicolás Casado,A
+19\tManoli Fernández,A
+20\tMaría Casado,A
+21\tDavid Casado,A
+22\tPatricia Marchena,A
+23\tCarolina Ramirez,A
+24\tCarolina Pérez,A
+25\tTomás Ramirez,A
+26\tPepa García,A
+27\tPope Delgado,A
+28\tMaría Delgado,A
+29\tEva Cartés García,A
+30\tAna Cartes,A
+31\tDavid Aragón,A
+32\tEnrique García,A
+33\tAngeles Lozano,A
+34\tEnrique García Lozano,A
+35\tIrene García Lozano,A
+36\tJoaquín Galán,A
+37\tMaría José Cruz,A
+38\tMarilo Mora,A
+39\tAlvaro Soubrier,A
+40\tMarta Soubrier,B
+41\tPablo Cabanillas,B
+42\tManolo Betanzos,A
+43\tLoli Barragán,A
+44\tCarmen Barragán,A
+45\tIsco Romero,A
+46\tPaco Arredondo,A
+47\tPaqui Sanchez,A
+48\tMiguel Ángel Hidalgo,A
+49\tCarmen Varo,A
+50\tCaty Heredia,A
+51\tAgustín Fernández,A
+52\tManolo Olmedo,A
+53\tPaula Garrido,A
+54\tNatalia Martínez,B
+55\tSergio Betanzos,B
+56\tPablo Díaz,B
+57\tCristina Fernández,B
+58\tJuan José Fernández,B
+59\tMar Ochando,B
+60\tElisa Arroyo,B
+61\tAlejandro Campina,B
+62\tCamen Romero Barragán,B
+63\tSara García,B
+64\tFernando Ávila,B
+65\tMaria Castillo,B
+66\tSalvador Pacheco,B
+67\tJuan Antonio Medel,B
+68\tRocio Borrero,B
+69\tCelia Botello,B
+70\tElena Camacho,B
+71\tRosa Morales,B
+72\tBelén Crespo,B
+73\tFran Valdayo,B
+74\tMargaux Ruiz,B
+75\tEduardo Sánchez,B
+76\tÁlvaro Aranda,B
+77\tLuis Hidalgo,B
+78\tNahiara Becerríl,B
+79\tAndrés Gómez,B
+80\tMaria Fernández-Escribano,B
+81\tMaria Kaimaki,B
+82\tAlberto Rodriguez,B
+83\tAmor Vázquez,B
+84\tRafa,B
+85\tJavier Fernández,B
+86\tJavier Espinosa,B
+87\tSara Crespo,B
+88\tCarlos del Prado,B
+89\tManuel Bustillo,B
+90\tGabriela Caputo,B
+91\tIrene De la Fuente,B
+92\tCarolina Alonso,B
+93\tCarlos de la Torre,B
+94\tPablo Laso,B
+95\tMonica Díaz,B
+96\tKurro Arroyo,B
+97\tVirginia Bermejo,B
+98\tJose Miguel Díaz,B
+99\tPaula Serrano,B`;
+
+function norm(s) {
+  return s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+}
+
+const people = [];
+for (const line of CSV.trim().split('\n')) {
+  const m = line.match(/^(\d+)\t(.+),(A|B)$/);
+  if (m) people.push({ id: m[1], name: m[2], group: m[3] });
+}
+
+const params = new URLSearchParams(location.search);
+const group = (params.get('group') || '').toUpperCase();
+
+if (group !== 'A' && group !== 'B') {
+  document.body.innerHTML = `
+    <div class="selector">
+      <h1>🚌 Control de acceso</h1>
+      <p>Selecciona tu grupo:</p>
+      <button class="sel-btn sel-a" onclick="location.search='?group=A'">Grupo A</button>
+      <button class="sel-btn sel-b" onclick="location.search='?group=B'">Grupo B</button>
+    </div>`;
+} else {
+  const accent = group === 'A' ? '#1565c0' : '#2e7d32';
+  document.documentElement.style.setProperty('--accent', accent);
+
+  const filtered = people.filter(p => p.group === group);
+  const lsKey = id => `busapp_v1_${group}_${id}`;
+  const checked = new Set(filtered.filter(p => localStorage.getItem(lsKey(p.id)) === '1').map(p => p.id));
+  let query = '';
+
+  function updateCounter() {
+    const n = checked.size;
+    document.querySelector('.hdr-count').textContent = `${n} / ${filtered.length}`;
+    document.querySelector('.hdr-sub').textContent = `${filtered.length - n} pendientes`;
+  }
+
+  function renderList() {
+    const q = norm(query);
+    const visible = q ? filtered.filter(p => norm(p.name).includes(q)) : filtered;
+    const listEl = document.getElementById('list');
+    if (!visible.length) {
+      listEl.innerHTML = '<div class="no-results">Sin resultados</div>';
+      return;
+    }
+    listEl.innerHTML = visible.map(p => {
+      const c = checked.has(p.id);
+      return `<div class="person-row${c ? ' checked' : ''}" data-id="${p.id}">` +
+        `<input class="person-cb" type="checkbox" tabindex="-1"${c ? ' checked' : ''}>` +
+        `<span class="person-name">${p.name}</span></div>`;
+    }).join('');
+  }
+
+  document.body.innerHTML = `
+    <div class="header ${group === 'A' ? 'hdr-a' : 'hdr-b'}">
+      <div class="hdr-info">
+        <div class="hdr-label">Grupo ${group} · Pasada de lista</div>
+        <div class="hdr-count">${checked.size} / ${filtered.length}</div>
+        <div class="hdr-sub">${filtered.length - checked.size} pendientes</div>
+      </div>
+      <button class="reset-btn" id="reset-btn">Borrar todo</button>
+    </div>
+    <div class="search-wrap">
+      <div class="search-inner">
+        <span class="search-icon">🔍</span>
+        <input id="search" class="search-input" type="search" placeholder="Buscar nombre…" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
+      </div>
+    </div>
+    <div id="list"></div>`;
+
+  // Anchor search bar just below the header
+  const headerEl = document.querySelector('.header');
+  document.querySelector('.search-wrap').style.top = headerEl.offsetHeight + 'px';
+
+  renderList();
+
+  document.getElementById('list').addEventListener('click', e => {
+    const row = e.target.closest('.person-row');
+    if (!row) return;
+    const id = row.dataset.id;
+    if (checked.has(id)) {
+      checked.delete(id);
+      localStorage.removeItem(lsKey(id));
+    } else {
+      checked.add(id);
+      localStorage.setItem(lsKey(id), '1');
+    }
+    row.classList.toggle('checked', checked.has(id));
+    row.querySelector('.person-cb').checked = checked.has(id);
+    updateCounter();
+  });
+
+  document.getElementById('search').addEventListener('input', e => {
+    query = e.target.value;
+    renderList();
+  });
+
+  document.getElementById('reset-btn').addEventListener('click', () => {
+    if (!confirm(`¿Borrar todos los marcados del Grupo ${group}?`)) return;
+    checked.clear();
+    filtered.forEach(p => localStorage.removeItem(lsKey(p.id)));
+    updateCounter();
+    renderList();
+  });
+}
+</script>
+</body>
+</html>
