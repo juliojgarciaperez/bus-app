@@ -118,7 +118,7 @@ const CSV = `1\tCati Conde,A
 69\tCelia Botello,B
 70\tElena Camacho,B
 71\tRosa Morales,B
-72\tBelén Crespo,B
+72\tBelén Crespo,A
 73\tFran Valdayo,B
 74\tMargaux Ruiz,B
 75\tEduardo Sánchez,B
@@ -236,6 +236,8 @@ if (group !== 'A' && group !== 'B') {
     row.classList.toggle('checked', checked.has(id));
     row.querySelector('.person-cb').checked = checked.has(id);
     updateCounter();
+    const searchEl = document.getElementById('search');
+    if (searchEl.value) { searchEl.value = ''; query = ''; renderList(); }
   });
 
   document.getElementById('search').addEventListener('input', e => {
